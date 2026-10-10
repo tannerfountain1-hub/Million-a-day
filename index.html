@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Million">
+<meta name="theme-color" content="#1F5C43">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Million a Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;800&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@400;600&display=swap">
+<style>
+/* Layout: one centered column, the counter is the page; a bank-note engraving pattern sits behind it */
+:root {
+  --bg: #EEF1EC;
+  --ink: #14231C;
+  --money: #1F5C43;
+  --muted: #5E6F66;
+  --line: #C9D3CA;
+  --panel: #E3E9E2;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Libre Franklin", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1512; --ink: #E4ECE6; --money: #82C9A2; --muted: #8B9C92;
+    --line: #26332C; --panel: #141E19; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1512; --ink: #E4ECE6; --money: #82C9A2; --muted: #8B9C92;
+  --line: #26332C; --panel: #141E19; color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body);
+  font-size: 15px; line-height: 1.5;
+}
+#engrave { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.wrap {
+  position: relative; z-index: 1; max-width: 760px; margin: 0 auto;
+  padding: 28px 16px 40px; min-height: 100%; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 28px;
+}
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.label {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted);
+}
+.date { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+.hero { display: flex; flex-direction: column; gap: 10px; padding-block: 4vh 0; }
+.counter {
+  font-family: var(--display); font-weight: 800; color: var(--money);
+  font-variant-numeric: tabular-nums; line-height: .9; letter-spacing: -.005em;
+  font-size: clamp(64px, 17vw, 156px); white-space: nowrap;
+}
+.counter .cents { font-weight: 500; font-size: .5em; opacity: .75; }
+.statement {
+  font-size: clamp(17px, 3.6vw, 21px); font-weight: 600; max-width: 34ch;
+  text-wrap: balance; margin: 4px 0 0;
+}
+
+.day { display: flex; flex-direction: column; gap: 8px; }
+.bar { position: relative; height: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
+.fill { position: absolute; inset: 0 auto 0 0; background: var(--money); width: 0; }
+.ticks { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.stat { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat b { font-family: var(--display); font-weight: 800; font-size: 26px; font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.1; }
+
+.next { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.next strong { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--money); font-variant-numeric: tabular-nums; }
+.next span { color: var(--muted); }
+
+.move { display: flex; flex-direction: column; gap: 6px; }
+input[type="text"], input[type="number"] {
+  font: inherit; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; width: 100%; box-sizing: border-box;
+}
+input:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--money); outline-offset: 2px; }
+
+details { border-top: 1px solid var(--line); padding-top: 14px; }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: " +"; }
+details[open] summary::after { content: " –"; }
+.settings { display: grid; gap: 14px; margin-top: 14px; }
+.settings label { display: flex; flex-direction: column; gap: 6px; }
+
+button.full {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
+  background: transparent; color: var(--ink); border: 1px solid var(--line);
+  border-radius: 3px; padding: 7px 12px; cursor: pointer;
+}
+button.full:hover { border-color: var(--money); color: var(--money); }
+
+@media (max-width: 460px) {
+  .stat b { font-size: 21px; }
+  .stat { padding: 12px 8px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="engrave" aria-hidden="true"></canvas>
+
+<main class="wrap">
+  <div class="top">
+    <span class="label">Today's count · resets at midnight</span>
+    <button class="full" id="fullBtn" type="button">Focus mode</button>
+  </div>
+
+  <section class="hero" aria-live="off">
+    <div class="date" id="date"></div>
+    <div class="counter" id="counter">$0<span class="cents">.00</span></div>
+    <p class="statement" id="statementOut"></p>
+  </section>
+
+  <section class="day" aria-label="How much of today has passed">
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><span class="label">Per second</span><b id="perSec"></b></div>
+    <div class="stat"><span class="label">Per minute</span><b id="perMin"></b></div>
+    <div class="stat"><span class="label">Per hour</span><b id="perHr"></b></div>
+  </section>
+
+  <div class="next">
+    <span class="label">Next mark</span>
+    <strong id="nextAmt"></strong>
+    <span id="nextTime"></span>
+  </div>
+
+  <label class="move">
+    <span class="label">Today's one move toward it</span>
+    <input type="text" id="move" placeholder="e.g. Ship the Eleven practice-plan screen" maxlength="120">
+  </label>
+
+  <details>
+    <summary class="label">Settings</summary>
+    <div class="settings">
+      <label><span class="label">Daily target ($)</span>
+        <input type="number" id="goal" min="1" step="1000" inputmode="numeric"></label>
+      <label><span class="label">Your statement</span>
+        <input type="text" id="statement" maxlength="90"></label>
+    </div>
+  </details>
+</main>
+
+<script>
+(function () {
+  const DAY = 86400;
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  const $ = id => document.getElementById(id);
+
+  let goal = Number(store.get("mad.goal", 1000000)) || 1000000;
+  let statement = store.get("mad.statement", "I build systems that earn while I sleep.");
+
+  const usd0 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
+  const dateFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+  $("goal").value = goal;
+  $("statement").value = statement;
+  $("move").value = store.get("mad.move." + new Date().toDateString(), "");
+
+  function renderStatic() {
+    $("statementOut").textContent = statement;
+    $("perSec").textContent = usd2.format(goal / DAY);
+    $("perMin").textContent = usd0.format(goal / 1440);
+    $("perHr").textContent = usd0.format(goal / 24);
+  }
+  renderStatic();
+
+  $("goal").addEventListener("input", e => {
+    const v = Number(e.target.value);
+    if (v > 0) { goal = v; store.set("mad.goal", String(v)); renderStatic(); }
+  });
+  $("statement").addEventListener("input", e => {
+    statement = e.target.value; store.set("mad.statement", statement); renderStatic();
+  });
+  $("move").addEventListener("input", e => store.set("mad.move." + new Date().toDateString(), e.target.value));
+
+  let lastDay = new Date().toDateString();
+
+  function tick() {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const secs = (now - midnight) / 1000;
+    const frac = Math.min(secs / DAY, 1);
+    const value = goal * frac;
+
+    const s = usd2.format(value);
+    const dot = s.lastIndexOf(".");
+    $("counter").innerHTML = s.slice(0, dot) + '<span class="cents">' + s.slice(dot) + "</span>";
+    $("fill").style.width = (frac * 100).toFixed(3) + "%";
+
+    // next 10% mark of the target
+    const step = goal / 10;
+    const nextVal = Math.min(goal, Math.floor(value / step + 1) * step);
+    const atSecs = (nextVal / goal) * DAY;
+    const at = new Date(midnight.getTime() + atSecs * 1000);
+    $("nextAmt").textContent = usd0.format(nextVal);
+    $("nextTime").textContent = nextVal >= goal ? "at midnight, then it starts over" : "at " + timeFmt.format(at);
+
+    if (now.toDateString() !== lastDay) {   // new day: clear yesterday's move
+      lastDay = now.toDateString();
+      $("move").value = store.get("mad.move." + lastDay, "");
+    }
+    $("date").textContent = dateFmt.format(now);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // Focus mode: fullscreen + keep the screen awake where the device allows it
+  let lock = null;
+  $("fullBtn").addEventListener("click", async () => {
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+      else if (document.exitFullscreen) await document.exitFullscreen();
+    } catch (e) {}
+    try { if (!lock && navigator.wakeLock) lock = await navigator.wakeLock.request("screen"); } catch (e) {}
+  });
+
+  // Engraved background: concentric guilloche rosette, drawn once per resize
+  const cv = $("engrave"), ctx = cv.getContext("2d");
+  function engrave() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--line").trim();
+    ctx.lineWidth = 0.6;
+    ctx.globalAlpha = 0.55;
+    const cx = w * 0.82, cy = h * 0.22, R = Math.max(w, h) * 0.55;
+    for (let k = 0; k < 14; k++) {
+      const base = R * (0.25 + k * 0.055);
+      ctx.beginPath();
+      for (let t = 0; t <= Math.PI * 2 + 0.01; t += 0.01) {
+        const r = base + Math.sin(t * 24 + k * 0.6) * 7 + Math.sin(t * 7) * 4;
+        const x = cx + r * Math.cos(t), y = cy + r * Math.sin(t);
+        t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+  engrave();
+  window.addEventListener("resize", engrave);
+  try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", engrave); } catch (e) {}
+  new MutationObserver(engrave).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>
+
+</body>
+</html>
