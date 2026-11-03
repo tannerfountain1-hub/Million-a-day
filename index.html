@@ -16,7 +16,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;800&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@400;600&display=swap">
 <style>
-/* Layout: one centered column, the counter is the page; a bank-note engraving pattern sits behind it */
+/* Layout: one centered column, the counter is the page; a bank-note engraving pattern sits behind it.
+   Incoming-money pings stack at the top of the screen like phone notifications. */
 :root {
   --bg: #EEF1EC;
   --ink: #14231C;
@@ -24,6 +25,8 @@
   --muted: #5E6F66;
   --line: #C9D3CA;
   --panel: #E3E9E2;
+  --toast: rgba(250, 252, 250, .94);
+  --toast-shadow: 0 10px 30px rgba(20, 35, 28, .16), 0 1px 3px rgba(20, 35, 28, .10);
   --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
   --body: "Libre Franklin", system-ui, -apple-system, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -31,15 +34,18 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0E1512; --ink: #E4ECE6; --money: #82C9A2; --muted: #8B9C92;
-    --line: #26332C; --panel: #141E19; color-scheme: dark;
+    --line: #26332C; --panel: #141E19; --toast: rgba(26, 37, 31, .95);
+    --toast-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .4);
+    color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0E1512; --ink: #E4ECE6; --money: #82C9A2; --muted: #8B9C92;
-  --line: #26332C; --panel: #141E19; color-scheme: dark;
+  --line: #26332C; --panel: #141E19; --toast: rgba(26, 37, 31, .95);
+  --toast-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .4);
+  color-scheme: dark;
 }
-html, body { height: 100%; margin: 0; }
-html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; -webkit-text-size-adjust: 100%; }
+html, body { height: 100%; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--body);
   font-size: 15px; line-height: 1.5;
@@ -69,6 +75,15 @@ body {
   text-wrap: balance; margin: 4px 0 0;
 }
 
+.received { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.received strong {
+  font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--money);
+  font-variant-numeric: tabular-nums;
+}
+.received span.count { color: var(--muted); }
+.received strong.bump { animation: bump .6s ease-out; }
+@keyframes bump { 0% { transform: scale(1); } 30% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
 .day { display: flex; flex-direction: column; gap: 8px; }
 .bar { position: relative; height: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
 .fill { position: absolute; inset: 0 auto 0 0; background: var(--money); width: 0; }
@@ -97,6 +112,8 @@ summary::after { content: " +"; }
 details[open] summary::after { content: " –"; }
 .settings { display: grid; gap: 14px; margin-top: 14px; }
 .settings label { display: flex; flex-direction: column; gap: 6px; }
+.settings label.check { flex-direction: row; align-items: center; gap: 10px; cursor: pointer; }
+.settings input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--money); margin: 0; }
 
 button.full {
   font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
@@ -105,15 +122,49 @@ button.full {
 }
 button.full:hover { border-color: var(--money); color: var(--money); }
 
+/* Incoming-money notifications */
+.pings {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20; pointer-events: none;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  padding-left: max(10px, env(safe-area-inset-left, 0px));
+  padding-right: max(10px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.ping {
+  pointer-events: auto; width: 100%; max-width: 420px; box-sizing: border-box;
+  display: grid; grid-template-columns: 38px 1fr; gap: 10px; align-items: start;
+  background: var(--toast); color: var(--ink);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--line); border-radius: 18px; padding: 11px 13px;
+  box-shadow: var(--toast-shadow); cursor: pointer;
+  animation: drop .45s cubic-bezier(.2, .9, .3, 1.15) both;
+}
+.ping.out { animation: rise .35s ease-in forwards; }
+@keyframes drop { from { transform: translateY(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rise { to { transform: translateY(-120%); opacity: 0; } }
+.ping .icon {
+  width: 38px; height: 38px; border-radius: 9px; background: var(--money); color: var(--bg);
+  display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 22px;
+}
+.ping .body { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ping .head { display: flex; justify-content: space-between; gap: 8px; }
+.ping .app { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.ping .when { font-size: 12px; color: var(--muted); }
+.ping .title { font-weight: 600; font-size: 19px; line-height: 1.25; }
+.ping .title b { color: var(--money); font-variant-numeric: tabular-nums; }
+.ping .memo { font-size: 13.5px; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ping, .ping.out, .received strong.bump { animation-duration: .01ms; }
+}
 @media (max-width: 460px) {
   .stat b { font-size: 21px; }
   .stat { padding: 12px 8px; }
 }
 </style>
-</head>
-<body>
 
 <canvas id="engrave" aria-hidden="true"></canvas>
+<div class="pings" id="pings" aria-live="polite"></div>
 
 <main class="wrap">
   <div class="top">
@@ -126,6 +177,12 @@ button.full:hover { border-color: var(--money); color: var(--money); }
     <div class="counter" id="counter">$0<span class="cents">.00</span></div>
     <p class="statement" id="statementOut"></p>
   </section>
+
+  <div class="received">
+    <span class="label">Received today</span>
+    <strong id="recvAmt">$0</strong>
+    <span class="count" id="recvCount"></span>
+  </div>
 
   <section class="day" aria-label="How much of today has passed">
     <div class="bar"><div class="fill" id="fill"></div></div>
@@ -156,6 +213,8 @@ button.full:hover { border-color: var(--money); color: var(--money); }
         <input type="number" id="goal" min="1" step="1000" inputmode="numeric"></label>
       <label><span class="label">Your statement</span>
         <input type="text" id="statement" maxlength="90"></label>
+      <label class="check"><input type="checkbox" id="pingsOn"><span>Money pings</span></label>
+      <label class="check"><input type="checkbox" id="soundOn"><span>Ping sound (starts after your first tap)</span></label>
     </div>
   </details>
 </main>
@@ -171,6 +230,8 @@ button.full:hover { border-color: var(--money); color: var(--money); }
 
   let goal = Number(store.get("mad.goal", 1000000)) || 1000000;
   let statement = store.get("mad.statement", "I build systems that earn while I sleep.");
+  let pingsOn = store.get("mad.pings", "1") === "1";
+  let soundOn = store.get("mad.sound", "1") === "1";
 
   const usd0 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -179,6 +240,8 @@ button.full:hover { border-color: var(--money); color: var(--money); }
 
   $("goal").value = goal;
   $("statement").value = statement;
+  $("pingsOn").checked = pingsOn;
+  $("soundOn").checked = soundOn;
   $("move").value = store.get("mad.move." + new Date().toDateString(), "");
 
   function renderStatic() {
@@ -197,7 +260,126 @@ button.full:hover { border-color: var(--money); color: var(--money); }
     statement = e.target.value; store.set("mad.statement", statement); renderStatic();
   });
   $("move").addEventListener("input", e => store.set("mad.move." + new Date().toDateString(), e.target.value));
+  $("pingsOn").addEventListener("change", e => {
+    pingsOn = e.target.checked; store.set("mad.pings", pingsOn ? "1" : "0");
+    if (pingsOn) schedule(1500);
+  });
+  $("soundOn").addEventListener("change", e => { soundOn = e.target.checked; store.set("mad.sound", soundOn ? "1" : "0"); });
 
+  // ---------- Money pings ----------
+  const senders = [
+    "Halcyon Partners", "Northline Capital", "Eleven", "Brightwater Holdings", "Summit Ridge Group",
+    "Meridian Ventures", "Copperleaf Media", "Atlas & Pine", "Bluefield Labs", "Granite Peak Fund",
+    "Silver Creek Licensing", "Oakmont Royalties", "Tidewater Co.", "Keystone Digital", "Evergreen Trust"
+  ];
+  const memos = [
+    "Annual license — thank you!", "Royalty payout", "Investment return", "Distribution for Q4",
+    "Licensing deal, first installment", "Partnership payment", "Bonus. Well earned.",
+    "Subscription revenue", "Paid in full", "Dividend", "For the deal we closed", "Consulting retainer",
+    "Revenue share", "Acquisition earnest money", "Sponsorship", "Wire transfer received"
+  ];
+  const kinds = ["Deposit", "Wire received", "Payment received", "Transfer in"];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+
+  function amount() {
+    // log-uniform between 0.2% and 8% of the daily target, with an occasional big one
+    let lo = goal * 0.002, hi = goal * 0.08;
+    if (Math.random() < 0.1) { lo = goal * 0.12; hi = goal * 0.3; }
+    const v = Math.exp(Math.log(lo) + Math.random() * (Math.log(hi) - Math.log(lo)));
+    return Math.random() < 0.5 ? Math.round(v / 100) * 100 : Math.round(v * 100) / 100;
+  }
+
+  const todayKey = () => "mad.recv." + new Date().toDateString();
+  function loadRecv() {
+    try { return JSON.parse(store.get(todayKey(), "")) || { total: 0, n: 0 }; } catch (e) { return { total: 0, n: 0 }; }
+  }
+  let recv = loadRecv();
+  function renderRecv(bump) {
+    $("recvAmt").textContent = usd0.format(recv.total);
+    $("recvCount").textContent = recv.n ? "from " + recv.n + (recv.n === 1 ? " payment" : " payments") : "the first ping is on its way";
+    if (bump) { const el = $("recvAmt"); el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+  }
+  renderRecv(false);
+
+  // Soft two-note chime; browsers only allow sound after the first tap
+  let audio = null;
+  function unlock() {
+    if (audio) return;
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  }
+  document.addEventListener("pointerdown", unlock, { once: true });
+  document.addEventListener("keydown", unlock, { once: true });
+  function chime() {
+    if (!soundOn || !audio) return;
+    try {
+      const t = audio.currentTime;
+      [[1318.5, 0], [1760, 0.09]].forEach(([f, d]) => {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + d);
+        g.gain.exponentialRampToValueAtTime(0.18, t + d + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.5);
+        o.connect(g).connect(audio.destination); o.start(t + d); o.stop(t + d + 0.55);
+      });
+    } catch (e) {}
+  }
+
+  function dismiss(el) {
+    if (!el.isConnected || el.classList.contains("out")) return;
+    el.classList.add("out");
+    setTimeout(() => el.remove(), 380);
+  }
+
+  function ping() {
+    const amt = amount();
+    const el = document.createElement("div");
+    el.className = "ping";
+    el.innerHTML =
+      '<div class="icon" aria-hidden="true">$</div>' +
+      '<div class="body">' +
+        '<div class="head"><span class="app"></span><span class="when">now</span></div>' +
+        '<div class="title"><b></b></div>' +
+        '<div class="memo">Deposited to your account</div>' +
+      '</div>';
+    el.querySelector(".app").textContent = pick(kinds).toUpperCase();
+    el.querySelector("b").textContent = "+" + usd2.format(amt);
+    el.addEventListener("click", () => dismiss(el));
+
+    const box = $("pings");
+    box.prepend(el);
+    while (box.children.length > 3) box.lastElementChild.remove();
+    setTimeout(() => dismiss(el), 7000);
+
+    if (todayKey() !== recv.key) { recv = loadRecv(); recv.key = todayKey(); }
+    recv.total += amt; recv.n += 1;
+    store.set(todayKey(), JSON.stringify({ total: recv.total, n: recv.n }));
+    renderRecv(true);
+    chime();
+    try { navigator.vibrate && navigator.vibrate(30); } catch (e) {}
+  }
+  recv.key = todayKey();
+
+  let timer = null;
+  function schedule(delay) {
+    clearTimeout(timer);
+    if (!pingsOn) return;
+    timer = setTimeout(() => {
+      if (pingsOn && !document.hidden) ping();
+      schedule(15000); // every 15 seconds
+    }, delay);
+  }
+  // A burst when you open the page, then a steady flow
+  function openingBurst() {
+    if (!pingsOn) return;
+    setTimeout(() => { if (pingsOn) ping(); }, 1200);
+    schedule(16200);
+  }
+  openingBurst();
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) openingBurst(); else clearTimeout(timer);
+  });
+
+  // ---------- Daily counter ----------
   let lastDay = new Date().toDateString();
 
   function tick() {
@@ -212,7 +394,6 @@ button.full:hover { border-color: var(--money); color: var(--money); }
     $("counter").innerHTML = s.slice(0, dot) + '<span class="cents">' + s.slice(dot) + "</span>";
     $("fill").style.width = (frac * 100).toFixed(3) + "%";
 
-    // next 10% mark of the target
     const step = goal / 10;
     const nextVal = Math.min(goal, Math.floor(value / step + 1) * step);
     const atSecs = (nextVal / goal) * DAY;
@@ -220,9 +401,10 @@ button.full:hover { border-color: var(--money); color: var(--money); }
     $("nextAmt").textContent = usd0.format(nextVal);
     $("nextTime").textContent = nextVal >= goal ? "at midnight, then it starts over" : "at " + timeFmt.format(at);
 
-    if (now.toDateString() !== lastDay) {   // new day: clear yesterday's move
+    if (now.toDateString() !== lastDay) {   // new day: clear yesterday's move and received total
       lastDay = now.toDateString();
       $("move").value = store.get("mad.move." + lastDay, "");
+      recv = loadRecv(); recv.key = todayKey(); renderRecv(false);
     }
     $("date").textContent = dateFmt.format(now);
     requestAnimationFrame(tick);
@@ -269,5 +451,4 @@ button.full:hover { border-color: var(--money); color: var(--money); }
 })();
 </script>
 
-</body>
-</html>
+</body></html>
